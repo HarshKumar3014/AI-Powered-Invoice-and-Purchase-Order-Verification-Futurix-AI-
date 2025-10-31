@@ -102,6 +102,36 @@ def _process_email_automation(use_openai: bool, model: str) -> None:
 			invoices = imap.fetch_unread_invoices(max_results=max_emails)
 			pos = imap.fetch_unread_pos(max_results=max_emails)
 			
+			# Enhanced debug info
+			if not invoices and not pos:
+				st.warning("⚠️ No invoices/POs detected. Checking all unread emails with attachments...")
+				# Try fetching ALL unread emails with attachments for debugging
+				try:
+					imap.mail.select("inbox")
+					status, messages = imap.mail.search(None, 'UNSEEN')
+					if status == 'OK':
+						email_ids = messages[0].split()
+						# Check a few emails to see what attachments exist
+						sample_count = min(5, len(email_ids))
+						attachment_info = []
+						for email_id in reversed(email_ids[-sample_count:]):
+							try:
+								status, msg_data = imap.mail.fetch(email_id, '(RFC822)')
+								if status == 'OK':
+									msg = email.message_from_bytes(msg_data[0][1])
+									subject = imap._decode_mime_words(msg['Subject'] or '')
+									attachments = imap._get_attachments(msg)
+									if attachments:
+										attachment_info.append(f"Email: '{subject}' → Attachments: {[f[0] for f in attachments]}")
+							except:
+								pass
+						if attachment_info:
+							with st.expander("🔍 Attachment Debug", expanded=True):
+								for info in attachment_info:
+									st.code(info)
+				except:
+					pass
+			
 			# Show what was found
 			if invoices or pos:
 				st.info(f"Found {len(invoices)} invoice(s) and {len(pos)} PO(s) with matching attachments")

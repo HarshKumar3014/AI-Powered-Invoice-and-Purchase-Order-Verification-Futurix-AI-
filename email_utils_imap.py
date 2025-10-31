@@ -69,18 +69,62 @@ class IMAPEmailIntegration:
 		return False
 
 	def _get_attachments(self, msg: email.message.Message) -> List[tuple[str, bytes]]:
-		"""Extract attachments from email message"""
+		"""Extract attachments from email message - handles explicit attachments, inline images, and Gmail's format"""
 		attachments = []
+		valid_extensions = ['.pdf', '.png', '.jpg', '.jpeg']
+		valid_content_types = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf', 'image/gif']
+		
 		for part in msg.walk():
-			if part.get_content_disposition() == 'attachment':
-				filename = part.get_filename()
-				if filename:
-					filename = self._decode_mime_words(filename)
-					if any(filename.lower().endswith(ext) for ext in ['.pdf', '.png', '.jpg', '.jpeg']):
-						payload = part.get_payload(decode=True)
-						if payload:
-							attachments.append((filename, payload))
-		return attachments
+			# Skip multipart containers (they're just wrappers)
+			if part.is_multipart():
+				continue
+			
+			content_disposition = str(part.get("Content-Disposition", "")).lower()
+			filename = part.get_filename()
+			content_type = part.get_content_type()
+			
+			# Decode filename if it exists
+			if filename:
+				filename = self._decode_mime_words(filename)
+			
+			# Method 1: Explicit attachment with Content-Disposition: attachment
+			if 'attachment' in content_disposition and filename:
+				if any(filename.lower().endswith(ext) for ext in valid_extensions):
+					payload = part.get_payload(decode=True)
+					if payload:
+						attachments.append((filename, payload))
+			
+			# Method 2: Has filename and valid content type (Gmail sometimes does this)
+			elif filename and content_type in valid_content_types:
+				if any(filename.lower().endswith(ext) for ext in valid_extensions):
+					payload = part.get_payload(decode=True)
+					if payload:
+						attachments.append((filename, payload))
+			
+			# Method 3: Valid content type with image/document (some email clients embed this way)
+			elif content_type in valid_content_types and not content_disposition:
+				# Try to get filename from Content-ID or generate one
+				content_id = part.get("Content-ID", "")
+				if not filename and content_id:
+					# Generate filename from content type
+					ext = '.png' if 'png' in content_type else ('.jpg' if 'jpeg' in content_type else ('.pdf' if 'pdf' in content_type else None))
+					if ext:
+						filename = f"attachment_{len(attachments)}{ext}"
+				
+				if filename and any(filename.lower().endswith(ext) for ext in valid_extensions):
+					payload = part.get_payload(decode=True)
+					if payload:
+						attachments.append((filename, payload))
+		
+		# Remove duplicates (same filename)
+		seen = set()
+		unique_attachments = []
+		for filename, data in attachments:
+			if filename not in seen:
+				seen.add(filename)
+				unique_attachments.append((filename, data))
+		
+		return unique_attachments
 
 	def fetch_unread_invoices(self, max_results: int = 10) -> List[Dict[str, Any]]:
 		"""Fetch unread emails with invoice attachments using IMAP"""
