@@ -232,7 +232,7 @@ Contributions, issues, and feature requests are welcome!
 **Harsh Kumar**
 
 - GitHub: [@HarshKumar3014](https://github.com/HarshKumar3014)
-- Email: examplecode14@gmail.com
+- Email: kumarharsh3014@gmail.com
 
 ## 🙏 Acknowledgments
 
@@ -246,6 +246,4 @@ Contributions, issues, and feature requests are welcome!
 - [Gmail API Setup (Alternative)](GMAIL_SETUP.md)
 
 ---
-
-**Made with ❤️ by Futurix AI**
 
