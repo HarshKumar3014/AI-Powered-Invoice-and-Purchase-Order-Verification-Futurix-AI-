@@ -233,6 +233,9 @@ Contributions, issues, and feature requests are welcome!
 
 - GitHub: [@HarshKumar3014](https://github.com/HarshKumar3014)
 - Email: kumarharsh3014@gmail.com
+- GitHub: [@pranaysensei31](https://github.com/pranaysensei31)
+- Email: pranaymahajan3106@gmail.com
+
 
 ## 🙏 Acknowledgments
 
